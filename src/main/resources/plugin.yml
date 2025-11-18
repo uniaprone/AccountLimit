@@ -1,0 +1,28 @@
+name: IPAccountDetection
+version: '1.0-SNAPSHOT'
+main: org.zzq.iPAccountDetection.IPAccountDetection
+api-version: '1.21'
+authors: [ zzq ]
+
+commands:
+  ipcheck:
+    description: "查看IP和账号关联信息"
+    usage: "/ipcheck [view|setlimit|stats]"
+    permission: ipaccountdetection.use  # 命令使用权限
+    permission-message: "§c你没有权限使用此命令！"  # 无权限时的提示消息
+
+# 声明权限节点
+permissions:
+  ipaccountdetection.use:
+    description: "允许使用 /ipcheck 命令"
+    default: op  # 默认仅OP可用（可选值：true/false/op）
+  ipaccountdetection.notify:
+    description: "接收IP关联警告通知"
+    default: op
+  ipaccountdetection.admin:
+    description: "管理员权限（包含所有功能）"
+    default: op
+    children:
+      ipaccountdetection.use: true
+      ipaccountdetection.notify: true
+
