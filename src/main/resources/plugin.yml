@@ -1,6 +1,6 @@
-name: IPAccountDetection
+name: AccountLimit
 version: '1.0-SNAPSHOT'
-main: org.zzq.iPAccountDetection.IPAccountDetection
+main: org.zzq.iPAccountDetection.AccountLimit
 api-version: '1.21'
 authors: [ zzq ]
 

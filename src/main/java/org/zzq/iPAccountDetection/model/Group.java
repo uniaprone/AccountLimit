@@ -1,4 +1,4 @@
-package org.zzq.iPAccountDetection;
+package org.zzq.iPAccountDetection.model;
 
 import java.util.HashSet;
 import java.util.Set;

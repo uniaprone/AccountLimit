@@ -4,7 +4,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
-import org.zzq.iPAccountDetection.DetectionService;
+import org.zzq.iPAccountDetection.Service.DetectionService;
 
 public class PlayerLoginListener implements Listener {
     private final DetectionService detectionService;
@@ -17,8 +17,6 @@ public class PlayerLoginListener implements Listener {
 
     @EventHandler
     public void onPlayerLogin(PlayerJoinEvent event) {
-        plugin.getLogger().info(event.getPlayer().getAddress().getAddress().getAddress().toString());
-        plugin.getLogger().info(event.getPlayer().getAddress().getAddress().getHostAddress());
         detectionService.handlePlayerLogin(event.getPlayer(), event.getPlayer().getAddress().getAddress().getHostAddress());
     }
 }
