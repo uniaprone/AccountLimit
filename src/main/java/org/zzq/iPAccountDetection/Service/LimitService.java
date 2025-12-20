@@ -8,17 +8,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.zzq.iPAccountDetection.model.LimitAccount;
 
 public class LimitService {
-    private LimitDataService limitDataService;
-    public LimitService(LimitDataService limitDataService){
-        this.limitDataService = limitDataService;
+    private LimitAccount limitAccount;
+    public LimitService(LimitAccount limitAccount){
+        this.limitAccount = limitAccount;
     }
 
     public void handleMovement(PlayerMoveEvent event){
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitDataService.isLimitAccount(player.getName()) && !player.hasPermission("")){
+        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }
@@ -27,7 +28,7 @@ public class LimitService {
     public void handleCommand(PlayerCommandPreprocessEvent event){
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitDataService.isLimitAccount(player.getName())){
+        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }
@@ -36,15 +37,15 @@ public class LimitService {
     public void handleQuit(PlayerQuitEvent event){
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitDataService.isLimitAccount(player.getName())){
-            limitDataService.removeLimitAccount(player.getName());
+        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
+            limitAccount.removeLimitAccount(player.getName());
         }
     }
 
     public void handleMessage(AsyncChatEvent event){
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitDataService.isLimitAccount(player.getName())){
+        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }

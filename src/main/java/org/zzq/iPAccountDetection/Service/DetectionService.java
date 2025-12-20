@@ -1,75 +1,62 @@
 package org.zzq.iPAccountDetection.Service;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.zzq.iPAccountDetection.command.CommandCompleter;
+import org.zzq.iPAccountDetection.infrastructure.AccountLogger;
 import org.zzq.iPAccountDetection.model.Group;
 import org.zzq.iPAccountDetection.Manager.GroupManager;
+import org.zzq.iPAccountDetection.model.LimitAccount;
 
 import java.util.*;
 
 public class DetectionService {
-    private final JavaPlugin plugin;
+    private final AccountLogger accountLogger;
     private final GroupManager groupManager;
     private final Map<String, Group> groups;
     private final Map<String, String> accountToGroupMap;
     private final Map<String, String> ipToGroupMap;
-    private LimitDataService limitDataService;
+    private LimitAccount limitAccount;
     private String adminPermission;
 
-    public DetectionService(JavaPlugin plugin, GroupManager groupManager, LimitDataService limitDataService) {
-        this.plugin = plugin;
+    public DetectionService(AccountLogger accountLogger, GroupManager groupManager, LimitAccount limitAccount) {
+        this.accountLogger = accountLogger;
         this.groupManager = groupManager;
         this.groups = groupManager.getGroups();
         this.accountToGroupMap = groupManager.getAccountToGroupMap();
         this.ipToGroupMap = groupManager.getIpToGroupMap();
-        this.limitDataService = limitDataService;
+        this.limitAccount = limitAccount;
         this.adminPermission = CommandCompleter.adminPermission;
     }
 
     public void handlePlayerLogin(Player player, String ipAddress) {
         String playerName = player.getName();
 
-        // 更新IP登录时间（无论IP是否已存在）
-        updateIPLoginTime(ipAddress, playerName);
-
         String accountGroupId = accountToGroupMap.get(playerName);
         String ipGroupId = ipToGroupMap.get(ipAddress);
 
-        plugin.getLogger().info("存在: " + groups);
-
         if (accountGroupId != null && ipGroupId != null && !accountGroupId.equals(ipGroupId)) {
-            plugin.getLogger().info("1");
+            accountLogger.debug("名称: " + playerName + " ip: " + ipAddress + "都存在且不在同一组");
             handleAllExists(player, ipGroupId);
-        } else if (accountGroupId != null) {
-            plugin.getLogger().info("2");
+        } else if (accountGroupId != null && ipGroupId == null) {
+            accountLogger.debug("名称: " + playerName + " ip: " + ipAddress + "只存在账号");
             handleOnlyAccount(ipAddress, accountGroupId);
-        } else if (ipGroupId != null) {
-            plugin.getLogger().info("3");
+        } else if (accountGroupId == null && ipGroupId != null) {
+            accountLogger.debug("名称: " + playerName + " ip: " + ipAddress + "只存在ip");
             handelOnlyIp(player, ipGroupId);
-        } else {
-            plugin.getLogger().info("4");
+        } else if (accountGroupId == null && ipGroupId == null) {
+            accountLogger.debug("名称: " + playerName + " ip: " + ipAddress + "都不存在");
             handleInexistence(playerName, ipAddress);
-        }
-    }
-
-    private void updateIPLoginTime(String ip, String playerName) {
-        String groupId = accountToGroupMap.get(playerName);
-        if (groupId != null) {
-            groupManager.updateIPLoginTime(ip, groupId);
-        } else {
-            // 如果玩家还没有组，先创建组再更新
-            String ipGroupId = ipToGroupMap.get(ip);
-            if (ipGroupId != null) {
-                groupManager.updateIPLoginTime(ip, ipGroupId);
-            }
+        } else{
+            accountLogger.debug("名称: " + playerName + " ip: " + ipAddress + "存在且在同一组");
+            groupManager.updateIPLoginTime(ipAddress, accountGroupId);
         }
     }
 
     private void handleAllExists(Player player, String ipGroupId){
         if(ipGroupId == null) return;
         if(player.hasPermission(adminPermission)) return;
-        limitDataService.addLimitAccount(player.getName());
+        accountLogger.debug("加入 玩家: " + player.getName() + " 至限制组");
+        limitAccount.addLimitAccount(player.getName());
     }
 
     private void handleOnlyAccount(String ipAddress, String accountGroupId){
@@ -91,7 +78,7 @@ public class DetectionService {
             groupManager.addAccount(accountList.getFirst(), player.getName());
             groupManager.updateIPLoginTime(player.getAddress().getAddress().getHostAddress(), ipGroupId);
         }else{
-            limitDataService.addLimitAccount(player.getName());
+            limitAccount.addLimitAccount(player.getName());
         }
     }
 
@@ -112,6 +99,6 @@ public class DetectionService {
         // 更新数据库中的登录时间
         groupManager.updateIPLoginTime(ipAddress, groupId);
 
-        plugin.getLogger().info("组: " + groupId + "账号: " + playerName + "ip: " + ipAddress);
+        accountLogger.debug("创建了组: " + groupId + " 账号: " + playerName + " ip: " + ipAddress);
     }
 }

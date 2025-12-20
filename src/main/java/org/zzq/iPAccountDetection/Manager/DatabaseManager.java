@@ -24,7 +24,7 @@ public class DatabaseManager {
 
             // 创建IP登录时间表
             String createIPTable = """
-                CREATE TABLE IF NOT EXISTS ip_login_times (
+                CREATE TABLE IF NOT EXISTS ips (
                     ip TEXT PRIMARY KEY,
                     group_id TEXT NOT NULL,
                     last_login INTEGER NOT NULL,
@@ -36,7 +36,7 @@ public class DatabaseManager {
             String createGroupTable = """
                 CREATE TABLE IF NOT EXISTS groups (
                     group_id TEXT PRIMARY KEY,
-                    max_account INTEGER DEFAULT 1
+                    max_account INTEGER DEFAULT 2
                 )
             """;
 
@@ -71,7 +71,8 @@ public class DatabaseManager {
 
     // 更新IP登录时间
     public void updateIPLoginTime(String ip, String groupId) {
-        String sql = "INSERT OR REPLACE INTO ip_login_times (ip, group_id, last_login) VALUES (?, ?, ?)";
+        if(ip == null || groupId == null) return;
+        String sql = "INSERT OR REPLACE INTO ips (ip, group_id, last_login) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             pstmt.setString(1, ip);
             pstmt.setString(2, groupId);
@@ -84,7 +85,7 @@ public class DatabaseManager {
 
     // 获取IP的最后登录时间
     public long getIPLastLoginTime(String ip) {
-        String sql = "SELECT last_login FROM ip_login_times WHERE ip = ?";
+        String sql = "SELECT last_login FROM ips WHERE ip = ?";
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             pstmt.setString(1, ip);
             ResultSet rs = pstmt.executeQuery();
@@ -100,7 +101,7 @@ public class DatabaseManager {
     // 清理30天前的IP记录
     public void cleanupOldIPs() {
         long thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000);
-        String sql = "DELETE FROM ip_login_times WHERE last_login < ?";
+        String sql = "DELETE FROM ips WHERE last_login < ?";
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             pstmt.setLong(1, thirtyDaysAgo);
             int deleted = pstmt.executeUpdate();
@@ -116,6 +117,7 @@ public class DatabaseManager {
     public void saveGroupToDatabase(String groupId, int maxAccount, List<String> accounts, List<String> ips) {
         String groupSql = "INSERT OR REPLACE INTO groups (group_id, max_account) VALUES (?, ?)";
         String accountSql = "INSERT OR REPLACE INTO accounts (account_name, group_id) VALUES (?, ?)";
+        String ipSql = "INSERT OR REPLACE INTO ips (ip, group_id, last_login) VALUES (?, ?, ?)";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -135,6 +137,14 @@ public class DatabaseManager {
                     pstmt.addBatch();
                 }
                 pstmt.executeBatch();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(ipSql)){
+                for(String ip : ips){
+                    pstmt.setString(1, ip);
+                    pstmt.setString(2, groupId);
+                    pstmt.setLong(3, System.currentTimeMillis());
+                }
             }
 
             conn.commit();

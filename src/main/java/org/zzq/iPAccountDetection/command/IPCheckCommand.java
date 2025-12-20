@@ -3,23 +3,19 @@ package org.zzq.iPAccountDetection.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.util.StringUtil;
-import org.bukkit.command.TabCompleter;
-import org.zzq.iPAccountDetection.Manager.ConfigManager;
+import org.zzq.iPAccountDetection.infrastructure.ConfigManager;
 import org.zzq.iPAccountDetection.Manager.GroupManager;
-import org.zzq.iPAccountDetection.Service.DetectionService;
 import org.zzq.iPAccountDetection.model.Group;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.zzq.iPAccountDetection.model.LimitAccount;
 
 public class IPCheckCommand implements CommandExecutor {
     private final GroupManager groupManager;
     private final ConfigManager configManager;
-    public IPCheckCommand(GroupManager groupManager, ConfigManager configManager) {
+    private LimitAccount limitAccount;
+    public IPCheckCommand(GroupManager groupManager, ConfigManager configManager, LimitAccount limitAccount) {
         this.groupManager = groupManager;
         this.configManager = configManager;
+        this.limitAccount = limitAccount;
     }
 
     @Override
@@ -49,6 +45,9 @@ public class IPCheckCommand implements CommandExecutor {
                 break;
             case "add":
                 handleAddCommand(sender, args);
+                break;
+            case "limitedaccount":
+                handleLimitedAccountCommand(sender, args);
                 break;
             case "reload":
                 handleReloadCommand(sender);
@@ -86,7 +85,7 @@ public class IPCheckCommand implements CommandExecutor {
     }
 
     private void handleSetLimitCommand(CommandSender sender, String[] args) {
-        if (args.length < 2) {
+        if (args.length < 3) {
             sender.sendMessage("§c用法: /ipcheck setlimit <玩家> <数量>");
             return;
         }
@@ -142,9 +141,37 @@ public class IPCheckCommand implements CommandExecutor {
         }
     }
 
+    private void handleLimitedAccountCommand(CommandSender sender, String[] args){
+        if (args.length < 2) {
+            sender.sendMessage("§c用法: /ipcheck limitedAccount list");
+            sender.sendMessage("§c用法: /ipcheck limitedAccount add/remove <玩家>");
+            return;
+        }
+        String operation = args[1];
+        if(operation.equals("list")){
+            sender.sendMessage("已限制玩家列表: " + limitAccount.getLimitedAccounts());
+            return;
+        }
+
+        if(args.length < 3){
+            sender.sendMessage("§c用法: /ipcheck limitedAccount add/remove <玩家>");
+            return;
+        }
+
+        String account = args[2];
+        if(operation.equals("add")){
+            limitAccount.addLimitAccount(account);
+            sender.sendMessage("已成功添加 " + account + " 到限制列表");
+        }else if(operation.equals("remove")){
+            limitAccount.removeLimitAccount(account);
+            sender.sendMessage("已成功从限制列表移除 " + account);
+        }
+    }
+
     private void handleReloadCommand(CommandSender sender){
         groupManager.shutdown();
         groupManager.reload();
+        configManager.reload();
         sender.sendMessage("§a重载成功");
     }
 }

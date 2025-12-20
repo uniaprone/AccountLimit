@@ -26,14 +26,28 @@ public class GroupManager {
 
     private void setupCleanupTask() {
         // 每6小时执行一次清理任务
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                databaseManager.cleanupOldIPs();
-                // 重新加载IP映射，因为可能有IP被清理
-                reloadIPMappings();
+        try {
+            if (plugin.getServer().getVersion().contains("Folia")) {
+                // Folia 版本
+                plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin,
+                        task -> {
+                            databaseManager.cleanupOldIPs();
+                            reloadIPMappings();
+                        },
+                        20L * 60 * 60 * 6, 20L * 60 * 60 * 6); // 6小时
+            } else {
+                // 传统 Bukkit 版本
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        databaseManager.cleanupOldIPs();
+                        reloadIPMappings();
+                    }
+                }.runTaskTimer(plugin, 20L * 60 * 60 * 6, 20L * 60 * 60 * 6); // 6小时
             }
-        }.runTaskTimer(plugin, 0L, 20L * 60 * 60 * 6); // 6小时
+        } catch (Exception e) {
+            plugin.getLogger().severe("无法设置清理任务: " + e.getMessage());
+        }
     }
 
     private void loadGroupsFromDatabase() {
@@ -54,7 +68,7 @@ public class GroupManager {
 
                     // 加载账号
                     loadAccountsForGroup(conn, group);
-                    // 加载IP（从ip_login_times表）
+                    // 加载IP
                     loadIPsForGroup(conn, group);
 
                     groups.put(groupId, group);
@@ -85,7 +99,7 @@ public class GroupManager {
     }
 
     private void loadIPsForGroup(Connection conn, Group group) throws SQLException {
-        String sql = "SELECT ip FROM ip_login_times WHERE group_id = ?";
+        String sql = "SELECT ip FROM ips WHERE group_id = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, group.getId());
             ResultSet rs = pstmt.executeQuery();
@@ -182,7 +196,7 @@ public class GroupManager {
     private void deleteGroupFromDatabase(String groupId) {
         String deleteGroupSql = "DELETE FROM groups WHERE group_id = ?";
         String deleteAccountsSql = "DELETE FROM accounts WHERE group_id = ?";
-        String deleteIPsSql = "DELETE FROM ip_login_times WHERE group_id = ?";
+        String deleteIPsSql = "DELETE FROM ips WHERE group_id = ?";
 
         try (Connection conn = databaseManager.getConnection()) {
             conn.setAutoCommit(false);

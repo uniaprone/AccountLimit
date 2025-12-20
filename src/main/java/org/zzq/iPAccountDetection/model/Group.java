@@ -11,7 +11,7 @@ public class Group {
 
     public Group(String id) {
         this.id = id;
-        this.maxAccount = 1;
+        this.maxAccount = 2;
     }
 
     public String getId() {
