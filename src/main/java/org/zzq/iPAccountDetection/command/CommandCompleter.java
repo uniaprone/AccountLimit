@@ -32,11 +32,16 @@ public class CommandCompleter implements TabCompleter {
                 completions.addAll(addOnlinePlayer(sender, args[1]));
             }else if (firstArg.equals("limitedaccount") && sender.hasPermission(adminPermission)) {
                 completions.addAll(addLimitedAccountCompletions(args[1]));
+            }else if (firstArg.equals("setmain") && sender.hasPermission(adminPermission)) {
+                completions.addAll(addOnlinePlayer(sender, args[1]));
+            }else if (firstArg.equals("setlimitenable") && sender.hasPermission(adminPermission)) {
+                completions.addAll(addBoolean(sender, args[1]));
             }
         }else if (args.length == 3) {
             String firstArg = args[0];
-            if(firstArg.equals("add") && sender.hasPermission(adminPermission)){
-                completions.addAll(addOnlinePlayer(sender, args[1]));
+            String secondArg = args[1];
+            if(firstArg.equals("limitedaccount") && (secondArg.equals("add") || secondArg.equals("remove")) && sender.hasPermission(adminPermission)){
+                completions.addAll(addOnlinePlayer(sender, args[2]));
             } else if (firstArg.equals("limitedaccount") && sender.hasPermission(adminPermission)) {
                 completions.addAll(addOnlinePlayer(sender, args[1]));
             }
@@ -61,6 +66,9 @@ public class CommandCompleter implements TabCompleter {
             availableCommands.add("add");
             availableCommands.add("stats");
             availableCommands.add("limitedaccount");
+            availableCommands.add("removeip");
+            availableCommands.add("setmain");
+            availableCommands.add("setlimitenable");
         }
 
         // 使用 StringUtil 匹配部分输入
@@ -79,5 +87,10 @@ public class CommandCompleter implements TabCompleter {
     private List<String> addLimitedAccountCompletions(String currentArg){
         List<String> playerArg = List.of("add", "remove", "list");
         return StringUtil.copyPartialMatches(currentArg, playerArg, new ArrayList<>());
+    }
+
+    private List<String> addBoolean(CommandSender sender, String currentArg){
+        List<String> booleanArg = new ArrayList<>(List.of("true", "false"));
+        return StringUtil.copyPartialMatches(currentArg, booleanArg, new ArrayList<>());
     }
 }

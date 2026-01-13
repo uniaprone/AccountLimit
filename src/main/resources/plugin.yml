@@ -4,6 +4,7 @@ main: org.zzq.iPAccountDetection.AccountLimit
 api-version: '1.21'
 folia-supported: true
 authors: [ zzq ]
+softdepend: ["PlaceholderAPI"]
 
 commands:
   ipcheck:

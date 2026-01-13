@@ -8,44 +8,55 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.zzq.iPAccountDetection.model.LimitAccount;
+import org.zzq.iPAccountDetection.infrastructure.ConfigChangeListener;
+import org.zzq.iPAccountDetection.infrastructure.ConfigManager;
+import org.zzq.iPAccountDetection.model.repository.ILimitedAccountRepository;
 
-public class LimitService {
-    private LimitAccount limitAccount;
-    public LimitService(LimitAccount limitAccount){
-        this.limitAccount = limitAccount;
+public class LimitService implements ConfigChangeListener {
+    private ILimitedAccountRepository limitAccountRepository;
+    private ConfigManager configManager;
+    private boolean isLimitEnable;
+    public LimitService(ILimitedAccountRepository limitAccountRepository, ConfigManager configManager){
+        this.limitAccountRepository = limitAccountRepository;
+        this.configManager = configManager;
+        this.isLimitEnable = configManager.isLimitEnable();
+        configManager.registerListener(this);
     }
 
     public void handleMovement(PlayerMoveEvent event){
+        if(!isLimitEnable) return;
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
+        if(limitAccountRepository.isLimitedAccount(player.getUniqueId().toString()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }
     }
 
     public void handleCommand(PlayerCommandPreprocessEvent event){
+        if(!isLimitEnable) return;
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
+        if(limitAccountRepository.isLimitedAccount(player.getUniqueId().toString()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }
     }
 
     public void handleQuit(PlayerQuitEvent event){
+        if(!isLimitEnable) return;
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
-            limitAccount.removeLimitAccount(player.getName());
+        if(limitAccountRepository.isLimitedAccount(player.getUniqueId().toString()) && !player.hasPermission("")){
+            limitAccountRepository.removeLimitedAccount(player.getUniqueId().toString());
         }
     }
 
     public void handleMessage(AsyncChatEvent event){
+        if(!isLimitEnable) return;
         if(event == null) return;
         Player player = event.getPlayer();
-        if(limitAccount.isLimitAccount(player.getName()) && !player.hasPermission("")){
+        if(limitAccountRepository.isLimitedAccount(player.getUniqueId().toString()) && !player.hasPermission("")){
             event.setCancelled(true);
             limitMessage(player);
         }
@@ -63,5 +74,10 @@ public class LimitService {
                 .color(NamedTextColor.YELLOW)
                 .decorate(TextDecoration.BOLD);
         player.sendMessage(secondMessage);
+    }
+
+    @Override
+    public void onConfigChanged(ConfigManager configManager) {
+        this.isLimitEnable = configManager.isLimitEnable();
     }
 }

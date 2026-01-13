@@ -1,5 +1,6 @@
 package org.zzq.iPAccountDetection;
 
+import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -7,54 +8,55 @@ import org.zzq.iPAccountDetection.Listener.PlayerCommandListener;
 import org.zzq.iPAccountDetection.Listener.PlayerLoginListener;
 import org.zzq.iPAccountDetection.Listener.PlayerMoveListener;
 import org.zzq.iPAccountDetection.Listener.PlayerQuitListener;
-import org.zzq.iPAccountDetection.infrastructure.AccountLogger;
-import org.zzq.iPAccountDetection.infrastructure.ConfigManager;
-import org.zzq.iPAccountDetection.Manager.DatabaseManager;
-import org.zzq.iPAccountDetection.Manager.GroupManager;
-import org.zzq.iPAccountDetection.Service.DetectionService;
-import org.zzq.iPAccountDetection.model.LimitAccount;
+import org.zzq.iPAccountDetection.Service.IPClearScheduleService;
 import org.zzq.iPAccountDetection.Service.LimitService;
+import org.zzq.iPAccountDetection.infrastructure.*;
+import org.zzq.iPAccountDetection.Service.DetectionService;
 import org.zzq.iPAccountDetection.command.CommandCompleter;
 import org.zzq.iPAccountDetection.command.IPCheckCommand;
+import org.zzq.iPAccountDetection.model.repository.ILimitedAccountRepository;
+import org.zzq.iPAccountDetection.model.repository.IMemoryGroupRepository;
 
 import java.util.Objects;
 
 public class AccountLimit extends JavaPlugin implements Listener {
     private ConfigManager configManager;
-    private GroupManager groupManager;
     private DetectionService detectionService;
-    private LimitAccount limitAccount;
+    private GroupDatabase groupDatabase;
+    private LogUtil logger;
+
+    private IMemoryGroupRepository memoryGroupRepository;
+    private ILimitedAccountRepository limitedAccountRepository;
+
     private LimitService limitService;
-    private DatabaseManager databaseManager;
-    private AccountLogger accountLogger;
 
     @Override
     public void onEnable() {
-        limitAccount = new LimitAccount();
-        limitService = new LimitService(limitAccount);
         configManager = new ConfigManager(this);
-        accountLogger = new AccountLogger(this.getLogger(), configManager);
-        databaseManager = new DatabaseManager(this);
-        groupManager = new GroupManager(this, databaseManager);
+        logger = new LogUtil(this.getLogger(), this.getDataFolder());
+        groupDatabase = new GroupDatabase(this, logger);
+        memoryGroupRepository = new MemoryGroupRepository(groupDatabase, logger);
+        limitedAccountRepository = new LimitedAccountRepository();
 
-        // 初始化组管理器
-        detectionService = new DetectionService(accountLogger, groupManager, limitAccount);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new AccountExpansion(memoryGroupRepository).register();
+        }
+
+        detectionService = new DetectionService(memoryGroupRepository, groupDatabase, limitedAccountRepository, "ipcheck.admin", logger);
+        limitService = new LimitService(limitedAccountRepository, configManager);
+        IPClearScheduleService ipClearScheduleService = new IPClearScheduleService(this, configManager, memoryGroupRepository, groupDatabase, logger);
 
 
-        // 注册事件监听器
         eventInitialize();
 
-        // 注册命令
-        Objects.requireNonNull(getCommand("ipcheck")).setExecutor(new IPCheckCommand(groupManager,configManager, limitAccount));
+        Objects.requireNonNull(getCommand("ipcheck")).setExecutor(new IPCheckCommand(memoryGroupRepository, configManager, groupDatabase, limitedAccountRepository));
         getCommand("ipcheck").setTabCompleter(new CommandCompleter());
 
-        getLogger().info("IP和账号关联检测插件已启用！a");
+        getLogger().info("IP和账号关联检测插件已启用！");
     }
 
     @Override
     public void onDisable() {
-        // 保存数据
-        groupManager.shutdown();
         getLogger().info("IP和账号关联检测插件已禁用！");
     }
 
@@ -64,5 +66,6 @@ public class AccountLimit extends JavaPlugin implements Listener {
         pluginManager.registerEvents(new PlayerCommandListener(limitService), this);
         pluginManager.registerEvents(new PlayerMoveListener(limitService), this);
         pluginManager.registerEvents(new PlayerQuitListener(limitService), this);
+//        if(pluginManager.isPluginEnabled("PlaceholderAPI")){ new AccountExpansion(groupManager);}
     }
 }

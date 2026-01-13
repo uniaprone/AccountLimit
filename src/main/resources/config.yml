@@ -1,1 +1,7 @@
 env: debug
+
+max_account_num: 2
+enable_limit: false
+
+ip_expire_min: 432000
+ip_clear_min: 60
