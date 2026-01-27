@@ -5,3 +5,6 @@ enable_limit: false
 
 ip_expire_min: 432000
 ip_clear_min: 60
+
+luckperms_enable: false
+luckperms_secondary_account_group_name: secondary

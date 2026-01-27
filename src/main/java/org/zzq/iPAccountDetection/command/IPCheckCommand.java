@@ -6,9 +6,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.zzq.iPAccountDetection.infrastructure.ConfigManager;
 import org.zzq.iPAccountDetection.infrastructure.GroupDatabase;
+import org.zzq.iPAccountDetection.model.ILuckpermsExpansion;
 import org.zzq.iPAccountDetection.model.aggregate.Group;
-import org.zzq.iPAccountDetection.model.entity.Account;
-import org.zzq.iPAccountDetection.model.entity.IP;
 import org.zzq.iPAccountDetection.model.repository.ILimitedAccountRepository;
 import org.zzq.iPAccountDetection.model.repository.IMemoryGroupRepository;
 import org.zzq.iPAccountDetection.util.TimeUtil;
@@ -19,13 +18,16 @@ import java.util.stream.Collectors;
 public class IPCheckCommand implements CommandExecutor {
     private final IMemoryGroupRepository memoryGroupRepository;
     private final ILimitedAccountRepository limitedAccountRepository;
+    private final ILuckpermsExpansion luckpermsExpansion;
     private final GroupDatabase groupDatabase;
     private final ConfigManager configManager;
-    public IPCheckCommand(IMemoryGroupRepository memoryGroupRepository, ConfigManager configManager, GroupDatabase groupDatabase, ILimitedAccountRepository limitedAccountRepository) {
+
+    public IPCheckCommand(IMemoryGroupRepository memoryGroupRepository, ConfigManager configManager, GroupDatabase groupDatabase, ILimitedAccountRepository limitedAccountRepository, ILuckpermsExpansion luckpermsExpansion) {
         this.memoryGroupRepository = memoryGroupRepository;
         this.configManager = configManager;
         this.groupDatabase = groupDatabase;
         this.limitedAccountRepository = limitedAccountRepository;
+        this.luckpermsExpansion = luckpermsExpansion;
     }
 
     @Override
@@ -70,6 +72,9 @@ public class IPCheckCommand implements CommandExecutor {
                 break;
             case "setlimitenable":
                 handleSetLimitEnableCommand(sender, args);
+                break;
+            case "luckperms":
+                handleLuckPermsCommand(sender, args);
                 break;
             default:
                 sender.sendMessage("§c未知子命令！");
@@ -323,5 +328,14 @@ public class IPCheckCommand implements CommandExecutor {
         boolean enable = Boolean.parseBoolean(args[1]);
         configManager.setLimitEnable(enable);
         sender.sendMessage("§a重载成功");
+    }
+
+    private void handleLuckPermsCommand(CommandSender sender, String[] args){
+        if(args.length < 2){
+            sender.sendMessage("§c用法: /ipcheck luckperms <true/false>");
+        }
+        boolean isEnable = Boolean.parseBoolean(args[1]);
+        configManager.setLuckPermsEnable(isEnable);
+        sender.sendMessage("§a成功" + (isEnable?"§a启用":"§e关闭") + "§aLuckPerms");
     }
 }

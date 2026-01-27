@@ -36,6 +36,8 @@ public class CommandCompleter implements TabCompleter {
                 completions.addAll(addOnlinePlayer(sender, args[1]));
             }else if (firstArg.equals("setlimitenable") && sender.hasPermission(adminPermission)) {
                 completions.addAll(addBoolean(sender, args[1]));
+            }else if (firstArg.equals("luckperms") && sender.hasPermission(adminPermission)) {
+                completions.addAll(addBoolean(sender, args[1]));
             }
         }else if (args.length == 3) {
             String firstArg = args[0];
@@ -69,6 +71,7 @@ public class CommandCompleter implements TabCompleter {
             availableCommands.add("removeip");
             availableCommands.add("setmain");
             availableCommands.add("setlimitenable");
+            availableCommands.add("luckperms");
         }
 
         // 使用 StringUtil 匹配部分输入

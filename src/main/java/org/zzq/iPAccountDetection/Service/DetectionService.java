@@ -35,7 +35,7 @@ public class DetectionService {
         if (accountGroupId != null && ipGroupId != null && !accountGroupId.equals(ipGroupId)) {
             logger.info("名称: " + playerName + " ip: " + ipAddress + "都存在且不在同一组" +
                     "账号组id: " + accountGroupId + "账号: " + memoryGroupRepository.getGroupById(accountGroupId).getAccounts().stream().map(Account::getAccountName).collect(Collectors.joining(", ")) +
-                    "ip组id: " + ipGroupId + memoryGroupRepository.getGroupById(ipGroupId).getAccounts().stream().map(Account::getAccountName).collect(Collectors.joining(", ")));
+                    " ip组id: " + ipGroupId + " " + memoryGroupRepository.getGroupById(ipGroupId).getAccounts().stream().map(Account::getAccountName).collect(Collectors.joining(", ")));
             handleAllExistsLimit(player);
         } else if (accountGroupId != null && ipGroupId == null) {
             logger.info("名称: " + playerName + " ip: " + ipAddress + "只存在账号");
