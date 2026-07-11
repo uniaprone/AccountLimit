@@ -84,6 +84,7 @@ public class DetectionService {
         memoryGroupRepository.addGroup(group);
         groupRepository.addGroup(group.getGroupId(),
                 group.getMaxAccount(),
+                group.isBan(),
                 group.getAccounts().getFirst().getAccountId(),
                 group.getAccounts().getFirst().getAccountName(),
                 group.getAccounts().getFirst().isMain(),

@@ -43,7 +43,8 @@ public class GroupDatabase implements IGroupRepository {
             String createGroupTable = """
                 CREATE TABLE IF NOT EXISTS groups (
                     group_id TEXT PRIMARY KEY,
-                    max_account INTEGER DEFAULT 2
+                    max_account INTEGER DEFAULT 2,
+                    is_ban BOOLEAN DEFAULT FALSE
                 )
             """;
 
@@ -63,6 +64,7 @@ public class GroupDatabase implements IGroupRepository {
                 stmt.execute(createAccountTable);
                 stmt.execute(createIPTable);
             }
+            addNewColumnsIfNeeded();
 
             logger.info("数据库初始化完成");
 
@@ -71,25 +73,22 @@ public class GroupDatabase implements IGroupRepository {
         }
     }
 
+    private void addNewColumnsIfNeeded() throws SQLException {
+        DatabaseMetaData meta = connection.getMetaData();
+        ResultSet columns = meta.getColumns(null, null, "groups", "is_ban");
+        if (!columns.next()) { // 如果字段不存在
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("ALTER TABLE groups ADD COLUMN is_ban BOOLEAN DEFAULT FALSE");
+                logger.info("成功添加is_ban字段到groups表");
+            }
+        }
+    }
+
     public Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
         }
         return connection;
-    }
-
-    // 更新IP登录时间
-    public void updateIPLoginTime(String ip, String groupId) {
-        if(ip == null || groupId == null) return;
-        String sql = "INSERT OR REPLACE INTO ips (ip, group_id, last_login) VALUES (?, ?, ?)";
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, ip);
-            pstmt.setString(2, groupId);
-            pstmt.setLong(3, System.currentTimeMillis());
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            logger.error("更新IP登录时间失败: " + e.getMessage());
-        }
     }
 
     // 清理30天前的IP记录
@@ -125,93 +124,6 @@ public class GroupDatabase implements IGroupRepository {
         }
     }
 
-    // 保存组数据到数据库
-    public void saveGroupToDatabase(String groupId, int maxAccount, List<String> accounts, List<String> ips) {
-        String groupSql = "INSERT OR REPLACE INTO groups (group_id, max_account) VALUES (?, ?)";
-        String accountSql = "INSERT OR REPLACE INTO accounts (account_name, group_id) VALUES (?, ?)";
-        String ipSql = "INSERT OR REPLACE INTO ips (ip, group_id, last_login) VALUES (?, ?, ?)";
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false);
-
-            // 保存组基本信息
-            try (PreparedStatement pstmt = conn.prepareStatement(groupSql)) {
-                pstmt.setString(1, groupId);
-                pstmt.setInt(2, maxAccount);
-                pstmt.executeUpdate();
-            }
-
-            // 保存账号信息
-            try (PreparedStatement pstmt = conn.prepareStatement(accountSql)) {
-                for (String account : accounts) {
-                    pstmt.setString(1, account);
-                    pstmt.setString(2, groupId);
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
-            }
-
-            try (PreparedStatement pstmt = conn.prepareStatement(ipSql)){
-                for(String ip : ips){
-                    pstmt.setString(1, ip);
-                    pstmt.setString(2, groupId);
-                    pstmt.setLong(3, System.currentTimeMillis());
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
-            }
-
-            conn.commit();
-        } catch (SQLException e) {
-            logger.error("保存组数据到数据库失败: " + e.getMessage());
-            if (conn != null) {
-                try {
-                    conn.rollback(); // 回滚事务[2](@ref)
-                } catch (SQLException rollbackEx) {
-                    logger.error("回滚事务失败: " + rollbackEx.getMessage());
-                }
-            }
-        }
-    }
-
-    public boolean addAccount(String accountName, String groupId) {
-        String sql = "INSERT OR REPLACE INTO accounts (account_name, group_id) VALUES (?, ?)";
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, accountName);
-            pstmt.setString(2, groupId);
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0;
-        } catch (SQLException e) {
-            logger.error("添加账号失败: " + e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean removeAccount(String accountName) {
-        String sql = "DELETE FROM accounts WHERE account_name = ?";
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, accountName);
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0;
-        } catch (SQLException e) {
-            logger.error("删除账号失败: " + e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean removeIP(String ip) {
-        String sql = "DELETE FROM ips WHERE ip = ?";
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, ip);
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0;
-        } catch (SQLException e) {
-            logger.error("数据库删除ip失败: " + e.getMessage());
-            return false;
-        }
-    }
-
     public void close() {
         try {
             if (connection != null && !connection.isClosed()) {
@@ -222,30 +134,12 @@ public class GroupDatabase implements IGroupRepository {
         }
     }
 
-    public Map<String, Group> loadGroup(){
-        Map<String, Group> groupMap = new HashMap<>();
-        String sql = "SELECT * FROM groups";
-        try(PreparedStatement pstmt = getConnection().prepareStatement(sql)){
-            ResultSet rs = pstmt.executeQuery();
-            while(rs.next()){
-                String groupId = rs.getString("group_id");
-                int maxAccount = rs.getInt("max_account");
-                Group group = new Group(groupId, maxAccount);
-                groupMap.put(groupId, group);
-            }
-            logger.info("成功加载了 " + groupMap.size() + "个组数据");
-            return groupMap;
-        }catch (SQLException e){
-            logger.error("加载组数据失败: " + e.getMessage());
-            return groupMap;
-        }
-    }
-
-    public boolean insertOrReplaceGroup(String groupId, int count) {
-        String sql = "INSERT OR REPLACE INTO groups (group_id, max_account) VALUES (?, ?)";
+    public boolean insertOrReplaceGroup(String groupId, int count, boolean isBan) {
+        String sql = "INSERT OR REPLACE INTO groups (group_id, max_account, is_ban) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             pstmt.setString(1, groupId);
             pstmt.setInt(2, count);
+            pstmt.setBoolean(3, isBan);
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
@@ -377,8 +271,8 @@ public class GroupDatabase implements IGroupRepository {
         }
     }
 
-    public boolean addGroup(String groupId, int maxAccount, String accountId, String accountName, boolean isMain, String ip, long lastLogin) {
-        String groupSql = "INSERT OR REPLACE INTO groups (group_id, max_account) VALUES (?, ?)";
+    public boolean addGroup(String groupId, int maxAccount, boolean isBan, String accountId, String accountName, boolean isMain, String ip, long lastLogin) {
+        String groupSql = "INSERT OR REPLACE INTO groups (group_id, max_account, is_ban) VALUES (?, ?, ?)";
         String accountSql = "INSERT OR REPLACE INTO accounts (account_id, account_name, group_id, is_main) VALUES (?, ?, ?, ?)";
         String ipSql = "INSERT OR REPLACE INTO ips (ip, group_id, last_login) VALUES (?, ?, ?)";
         Connection conn = null;
@@ -390,6 +284,7 @@ public class GroupDatabase implements IGroupRepository {
             try (PreparedStatement pstmt = conn.prepareStatement(groupSql)) {
                 pstmt.setString(1, groupId);
                 pstmt.setInt(2, maxAccount);
+                pstmt.setBoolean(3, isBan);
                 pstmt.executeUpdate();
             }
 
@@ -429,7 +324,7 @@ public class GroupDatabase implements IGroupRepository {
         Map<String, String> accountMap = new HashMap<>();
         Map<String, String> ipMap = new HashMap<>();
         String sql = """
-                SELECT g.group_id, g.max_account,
+                SELECT g.group_id, g.max_account, g.is_ban,
                 a.account_id, a.account_name, a.is_main,
                 i.ip,i.last_login
                 FROM groups g
@@ -442,10 +337,12 @@ public class GroupDatabase implements IGroupRepository {
             while (rs.next()){
                 String groupId = rs.getString("group_id");
                 int maxAccount = rs.getInt("max_account");
+                boolean isBan = rs.getBoolean("is_ban");
                 Group currentGroup = groupMap.computeIfAbsent(groupId, id -> {
                     Group newGroup = new Group();
                     newGroup.setGroupId(id);
                     newGroup.setMaxAccount(maxAccount);
+                    newGroup.setBan(isBan);
                     newGroup.setAccounts(new ArrayList<>());
                     newGroup.setIps(new ArrayList<>());
                     return newGroup;
@@ -547,6 +444,25 @@ public class GroupDatabase implements IGroupRepository {
                     logger.error("关闭数据库连接失败: " + e.getMessage());
                 }
             }
+        }
+    }
+
+    public boolean updateGroupBanStatus(String groupId, boolean isBan) {
+        String sql = "UPDATE groups SET is_ban = ? WHERE group_id = ?";
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            pstmt.setBoolean(1, isBan);
+            pstmt.setString(2, groupId);
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                logger.info("成功更新组 " + groupId + " 的ban状态为: " + isBan);
+                return true;
+            } else {
+                logger.warn("未找到组 " + groupId + "，无法更新ban状态");
+                return false;
+            }
+        } catch (SQLException e) {
+            logger.error("更新组ban状态失败: " + e.getMessage());
+            return false;
         }
     }
 }

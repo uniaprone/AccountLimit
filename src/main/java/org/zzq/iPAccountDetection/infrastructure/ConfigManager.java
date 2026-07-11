@@ -20,9 +20,10 @@ public class ConfigManager {
     private Integer maxAccount;
     private Long ipExpireMin;
     private Long ipClearMin;
-    private boolean isLimitEnable;
     private boolean isLuckPermsEnable;
     private String luckpermsSecondaryAccountGroupName;
+
+    private LimitEventConfig limitEventConfig;
 
     public ConfigManager(Plugin plugin, LogUtil logger){
         this.plugin = plugin;
@@ -49,10 +50,37 @@ public class ConfigManager {
         maxAccount = fileConfiguration.getInt("max_account_num", 2);
         ipExpireMin = fileConfiguration.getLong("ip_expire_min", 1440);
         ipClearMin = fileConfiguration.getLong("ip_clear_min", 30);
-        isLimitEnable = fileConfiguration.getBoolean("enable_limit", false);
         isLuckPermsEnable = fileConfiguration.getBoolean("luckperms_enable", false);
         luckpermsSecondaryAccountGroupName = fileConfiguration.getString("luckperms_secondary_account_group_name", "secondary");
+
+        limitEventConfig = new LimitEventConfig(
+                fileConfiguration.getBoolean("limit_event.enable", false),
+                fileConfiguration.getInt("limit_event.trigger_interval_times", 10),
+                parseLimitTitleConfig(),
+                parseLimitMessageConfig()
+        );
+
         notifyListeners();
+    }
+
+    private LimitTitleConfig parseLimitTitleConfig() {
+        return new LimitTitleConfig(
+                fileConfiguration.getBoolean("limit_event.limit_title.enable", false),
+                fileConfiguration.getInt("limit_event.limit_title.fadein_ticks", 20),
+                fileConfiguration.getInt("limit_event.limit_title.stay_ticks", 100),
+                fileConfiguration.getInt("limit_event.limit_title.fadeout_ticks", 20),
+                fileConfiguration.getString("limit_event.limit_title.title.message", "该账号状态异常"),
+                fileConfiguration.getString("limit_event.limit_title.title.color", "yellow"),
+                fileConfiguration.getString("limit_event.limit_title.sub_title.message", "如有疑问请加群反馈!"),
+                fileConfiguration.getString("limit_event.limit_title.sub_title.color", "YELLOW")
+        );
+    }
+
+    private LimitMessageConfig parseLimitMessageConfig() {
+        return new LimitMessageConfig(
+                fileConfiguration.getBoolean("limit_event.limit_message.enable", false),
+                fileConfiguration.getStringList("limit_event.limit_message.messages")
+        );
     }
 
     public void registerListener(ConfigChangeListener listener){
@@ -69,19 +97,14 @@ public class ConfigManager {
         }
     }
 
-    public boolean isLimitEnable() {
-        return isLimitEnable;
-    }
-
     public void setLimitEnable(boolean limitEnable) {
-        isLimitEnable = limitEnable;
-        fileConfiguration.set("enable_limit", limitEnable);
+        limitEventConfig.setEnable(limitEnable);
+        fileConfiguration.set("limit_event.enable", limitEnable);
         try {
             fileConfiguration.save(file); // 保存到文件
         } catch (IOException e) {
             logger.warn("无法保存配置文件" + e);
         }
-        notifyListeners();
     }
 
     public Long getIpExpireMin() {
@@ -123,6 +146,10 @@ public class ConfigManager {
             logger.warn("无法保存配置文件" + e);
         }
         notifyListeners();
+    }
+
+    public LimitEventConfig getLimitDisplayConfig() {
+        return limitEventConfig;
     }
 
     public String getLuckPermsSecondaryAccountGroupName() {

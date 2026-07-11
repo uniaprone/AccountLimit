@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public class Group {
     private String groupId;
     private int maxAccount;
+    private boolean isBan;
     private List<Account> accounts = new ArrayList<>();
     private List<IP> ips = new ArrayList<>();
 
@@ -17,13 +18,15 @@ public class Group {
         this.maxAccount = maxAccount;
         this.accounts = new ArrayList<>();
         this.ips = new ArrayList<>();
+        this.isBan = false;
     }
 
-    public Group(String groupId, int maxAccount, ArrayList<Account> accounts, ArrayList<IP> ips) {
+    public Group(String groupId, int maxAccount, ArrayList<Account> accounts, ArrayList<IP> ips, boolean is_ban) {
         this.groupId = groupId;
         this.maxAccount = maxAccount;
         this.accounts = accounts;
         this.ips = ips;
+        this.isBan = is_ban;
     }
 
     public Group() {}
@@ -33,11 +36,20 @@ public class Group {
         String groupId = UUID.randomUUID().toString();
         group.setGroupId(groupId);
         group.setMaxAccount(2);
+        group.setBan(false);
         Account account = new Account(groupId, accountId, accountName, true);
         group.setAccounts(new ArrayList<>(List.of(account)));
         IP ip = new IP(groupId, ipAddress, time);
         group.setIps(new ArrayList<>(List.of(ip)));
         return group;
+    }
+
+    public boolean isBan() {
+        return isBan;
+    }
+
+    public void setBan(boolean ban) {
+        isBan = ban;
     }
 
     public String getGroupId() {

@@ -10,6 +10,7 @@ import java.util.Set;
 public interface IMemoryGroupRepository {
     Map<String, Group> getGroups();
     boolean setMaxAccount(String groupId, int count);
+    boolean setBanGroup(String groupId, boolean isBan);
     boolean addGroup(Group group);
     boolean removeGroup(String groupId);
     boolean updateIPLastLogin(String groupId, String ipAddress, long time);

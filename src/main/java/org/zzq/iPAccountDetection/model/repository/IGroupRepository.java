@@ -10,7 +10,8 @@ import java.util.Map;
 
 public interface IGroupRepository {
     GroupLoadResult loadGroupsWithAssociations();
-    boolean insertOrReplaceGroup(String groupId, int count);
+    boolean insertOrReplaceGroup(String groupId, int count, boolean isBan);
+    boolean updateGroupBanStatus(String groupId, boolean isBan);
     boolean deleteGroup(String groupId);
     boolean addAccount(String accountId, String accountName, String groupId, boolean isMain);
     boolean setMainAccount(String accountId, String groupId);
@@ -18,5 +19,5 @@ public interface IGroupRepository {
     boolean insertOrUpdateIP(String ip, String groupId, long time);
     boolean cleanupExpiredIPs(List<IP> expiredIPs);
     boolean deleteIP(String ip);
-    boolean addGroup(String groupId, int maxAccount, String accountId, String accountName, boolean isMain, String ips, long lastLogin);
+    boolean addGroup(String groupId, int maxAccount, boolean isBan, String accountId, String accountName, boolean isMain, String ips, long lastLogin);
 }

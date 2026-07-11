@@ -44,6 +44,21 @@ public class MemoryGroupRepository implements IMemoryGroupRepository {
         return true;
     }
 
+    @Override
+    public boolean setBanGroup(String groupId, boolean isBan) {
+        if(!groupMap.containsKey(groupId)){
+            logger.error("设置封禁账号时: " + groupId + "组不存在");
+            return false;
+        }
+        Group group = groupMap.get(groupId);
+        if(group == null){
+            logger.error("设置封禁账号时: " + groupId + "组为空");
+            return false;
+        }
+        group.setBan(isBan);
+        return true;
+    }
+
     public boolean addGroup(Group group){
         if(groupMap.containsKey(group.getGroupId())){
             logger.error("向内存添加组groupId: " + group.getGroupId() + "时组已存在");
@@ -218,7 +233,7 @@ public class MemoryGroupRepository implements IMemoryGroupRepository {
     public Group getGroupByAccountId(String accountId) {
         String groupId = accountMap.get(accountId);
         if(groupId == null){
-            logger.error("通过accountId获取组时不存在 " + accountId);
+            logger.info("通过accountId获取组时不存在 " + accountId);
             return null;
         }
         if(!groupMap.containsKey(groupId)){

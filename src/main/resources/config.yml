@@ -1,10 +1,32 @@
 env: debug
 
 max_account_num: 2
-enable_limit: false
+
 
 ip_expire_min: 432000
 ip_clear_min: 60
 
-luckperms_enable: false
+luckperms_enable: true
 luckperms_secondary_account_group_name: secondary
+
+
+limit_event:
+  enable: true
+  trigger_interval_times: 10
+
+  limit_title:
+    enable: true
+    fadein_ticks: 20
+    stay_ticks: 100
+    fadeout_ticks: 20
+    title:
+      message: "该账号状态异常"
+      color: yellow
+    sub_title:
+      message: "如有疑问请加群:1045261034 反馈!"
+      color: blue
+
+  limit_message:
+    enable: false
+    messages:
+      - "账号数量超出限制？"

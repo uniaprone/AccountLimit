@@ -76,6 +76,9 @@ public class IPCheckCommand implements CommandExecutor {
             case "luckperms":
                 handleLuckPermsCommand(sender, args);
                 break;
+            case "setban":
+                handleSetBanCommand(sender, args);
+                break;
             default:
                 sender.sendMessage("§c未知子命令！");
                 break;
@@ -104,6 +107,7 @@ public class IPCheckCommand implements CommandExecutor {
         sender.sendMessage("§e最大账号数: §7" + group.getMaxAccount());
         sender.sendMessage("§e关联账号数: §7" + group.getAccounts().size());
         sender.sendMessage("§e关联IP数: §7" + group.getIps().size());
+        sender.sendMessage("§e是否封禁: §7" + (group.isBan()?"§c是":"§a否"));
 
         String accountString = group.getAccounts().stream()
                 .filter(Objects::nonNull) // 过滤空账号
@@ -134,8 +138,9 @@ public class IPCheckCommand implements CommandExecutor {
             }
             String playerId = Bukkit.getOfflinePlayer(player).getUniqueId().toString();
             String groupId = memoryGroupRepository.getAccountGroupId(playerId);
+            Group group = memoryGroupRepository.getGroupById(groupId);
             boolean memoryOk = memoryGroupRepository.setMaxAccount(groupId, limit);
-            boolean dbOk = groupDatabase.insertOrReplaceGroup(groupId, limit);
+            boolean dbOk = groupDatabase.insertOrReplaceGroup(groupId, limit, group.isBan());
             if(memoryOk && dbOk){
                 sender.sendMessage("§a已设置玩家" + player + "最大账号限制为: " + limit);
             }else{
@@ -312,7 +317,6 @@ public class IPCheckCommand implements CommandExecutor {
         }else{
             sender.sendMessage("设置主账号 " + playerName + "失败");
         }
-
     }
 
     private void handleReloadCommand(CommandSender sender){
@@ -337,5 +341,22 @@ public class IPCheckCommand implements CommandExecutor {
         boolean isEnable = Boolean.parseBoolean(args[1]);
         configManager.setLuckPermsEnable(isEnable);
         sender.sendMessage("§a成功" + (isEnable?"§a启用":"§e关闭") + "§aLuckPerms");
+    }
+
+    private void handleSetBanCommand(CommandSender sender, String[] args){
+        if(args.length < 2){
+            sender.sendMessage("§c用法: /ipcheck setban <玩家> <true/false>");
+        }
+        String playerName = args[1];
+        boolean isBan = Boolean.parseBoolean(args[2]);
+        String playerId = Bukkit.getOfflinePlayer(playerName).getUniqueId().toString();
+        String groupId = memoryGroupRepository.getAccountGroupId(playerId);
+        boolean memoryOk = memoryGroupRepository.setBanGroup(groupId, isBan);
+        boolean dbOk = groupDatabase.updateGroupBanStatus(groupId, isBan);
+        if(memoryOk && dbOk){
+            sender.sendMessage("已成功ban组 " + groupId);
+        }else{
+            sender.sendMessage("设置ban组 " + groupId + "失败");
+        }
     }
 }

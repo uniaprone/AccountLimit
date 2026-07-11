@@ -38,6 +38,8 @@ public class CommandCompleter implements TabCompleter {
                 completions.addAll(addBoolean(sender, args[1]));
             }else if (firstArg.equals("luckperms") && sender.hasPermission(adminPermission)) {
                 completions.addAll(addBoolean(sender, args[1]));
+            }else if (firstArg.equals("setban") && sender.hasPermission(adminPermission)) {
+                completions.addAll(addOnlinePlayer(sender, args[1]));
             }
         }else if (args.length == 3) {
             String firstArg = args[0];
@@ -45,7 +47,9 @@ public class CommandCompleter implements TabCompleter {
             if(firstArg.equals("limitedaccount") && (secondArg.equals("add") || secondArg.equals("remove")) && sender.hasPermission(adminPermission)){
                 completions.addAll(addOnlinePlayer(sender, args[2]));
             } else if (firstArg.equals("limitedaccount") && sender.hasPermission(adminPermission)) {
-                completions.addAll(addOnlinePlayer(sender, args[1]));
+                completions.addAll(addOnlinePlayer(sender, args[2]));
+            } else if (firstArg.equals("setban") && sender.hasPermission(adminPermission)) {
+                completions.addAll(addBoolean(sender, args[2]));
             }
         }
 
@@ -72,6 +76,7 @@ public class CommandCompleter implements TabCompleter {
             availableCommands.add("setmain");
             availableCommands.add("setlimitenable");
             availableCommands.add("luckperms");
+            availableCommands.add("setban");
         }
 
         // 使用 StringUtil 匹配部分输入

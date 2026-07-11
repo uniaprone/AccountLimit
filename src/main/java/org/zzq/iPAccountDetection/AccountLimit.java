@@ -56,7 +56,7 @@ public class AccountLimit extends JavaPlugin implements Listener {
         }
 
         detectionService = new DetectionService(memoryGroupRepository, groupDatabase, limitedAccountRepository, "ipcheck.admin", logger);
-        limitService = new LimitService(limitedAccountRepository, configManager);
+        limitService = new LimitService(limitedAccountRepository, memoryGroupRepository, configManager);
         new IPClearScheduleService(this, configManager, memoryGroupRepository, groupDatabase, logger);
 
 
@@ -76,9 +76,14 @@ public class AccountLimit extends JavaPlugin implements Listener {
     private void eventInitialize(){
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerLoginListener(detectionService, luckPermsService), this);
+        pluginManager.registerEvents(new PlayerChatListener(limitService), this);
         pluginManager.registerEvents(new PlayerCommandListener(limitService), this);
         pluginManager.registerEvents(new PlayerMoveListener(limitService), this);
         pluginManager.registerEvents(new PlayerQuitListener(limitService), this);
+        pluginManager.registerEvents(new PlayerOpenInventoryEvent(limitService), this);
+        pluginManager.registerEvents(new PlayerDropItemListener(limitService), this);
+        pluginManager.registerEvents(new PlayerInteractListener(limitService), this);
+        pluginManager.registerEvents(new InventroyClickListener(limitService), this);
 //        if(pluginManager.isPluginEnabled("PlaceholderAPI")){ new AccountExpansion(groupManager);}
     }
 }
